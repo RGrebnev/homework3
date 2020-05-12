@@ -34,7 +34,11 @@ public class YandexMarketTest {
         By popupHelp = By.cssSelector(".b-spy-visible");
         By allCategories = By.cssSelector("div[data-zone-name=all-categories] button");
         By verticalMenu = By.cssSelector("div[role=tablist][aria-orientation=vertical]");
+        By expandedMenu = By.cssSelector("div[role=tablist][aria-orientation=vertical] ~ div[aria-expanded=true]");
         By electroLink = By.cssSelector("a[href=\"/catalog--elektronika/54440\"]");
+        By mobileLink = By.cssSelector("a[href^=\"/catalog--mobilnye-telefony/54726\"]");
+        By meizuManufacturer = By.cssSelector("input[name=\"Производитель Meizu\"] + div");
+        By realmeManufacturer = By.cssSelector("input[name=\"Производитель realme\"] + div");
 
         WebDriverWait wait = new WebDriverWait(driver, 10L);
         Actions action = new Actions(driver);
@@ -49,6 +53,11 @@ public class YandexMarketTest {
         wait.until(ExpectedConditions.visibilityOfElementLocated(verticalMenu));
         //наводим курсор на элемент "Электроника"
         action.moveToElement(driver.findElement(verticalMenu).findElement(electroLink)).build().perform();
+        //нажать на ссылку "мобильные телефоны" в расширенном меню
+        driver.findElement(expandedMenu).findElement(mobileLink).click();
+        //отметить чекбоксы meizu и realmi
+        driver.findElement(meizuManufacturer).click();
+        driver.findElement(realmeManufacturer).click();
 
     }
 
