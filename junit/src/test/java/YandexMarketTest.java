@@ -16,6 +16,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import javax.naming.ldap.LdapReferralException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class YandexMarketTest {
     protected static WebDriver driver;
@@ -28,11 +29,12 @@ public class YandexMarketTest {
         if (browserType == null) browserType = "chrome"; //default browser (without argument)
         driver = WebDriverFactory.createNewDriver(browserType);
         driver.manage().window().maximize();
+        driver.manage().timeouts().implicitlyWait(500L, TimeUnit.MILLISECONDS);
         logger.info("Driver is up");
     }
 
     @Test
-    public void openPage() throws InterruptedException {
+    public void longLongTest() {
 
         By popupHelp = By.cssSelector(".b-spy-visible");
         By allCategories = By.cssSelector("div[data-zone-name=all-categories] button");
@@ -47,27 +49,22 @@ public class YandexMarketTest {
         By preloaderOnItems = By.cssSelector(".n-filter-applied-results__content .preloadable__preloader_visibility_visible");
         By xiaomiItems = By.xpath("//div[text()=\"Xiaomi\"]/ancestor::div[contains(@data-id, \"model\")]");
         By realmeItems = By.xpath("//div[text()=\"realme\"]/ancestor::div[contains(@data-id, \"model\")]");
-        By compareButton = By.cssSelector(".n-user-lists_type_compare");
+        By itemCompareButton = By.cssSelector(".n-user-lists_type_compare");
         By itemLink = By.cssSelector("div.n-snippet-cell2__header a");
         By popupInformer = By.cssSelector(".popup-informer");
         By popupInformerText = By.cssSelector(".popup-informer .popup-informer__title");
         By popupInformerClose = By.cssSelector(".popup-informer .popup-informer__close");
         By popupInformerCompare = By.cssSelector(".popup-informer .button");
+        By compareItems = By.cssSelector(".n-compare-head .n-compare-cell");
+        By compareAllSpecs = By.cssSelector(".n-compare-show-controls__all");
+        By compareDiff = By.cssSelector(".n-compare-show-controls__diff");
+        By compareOS = By.xpath("//div[text()=\"Операционная система\"]");
+        By comparePreloader = By.cssSelector(".spin2_progress_yes");
 
-
-
-
-
-//        By xiaomiToCompare = By.cssSelector(".n-user-lists_type_compare[data-bem*=\"Xiaomi\"]");
-//        By realmeToCompare = By.cssSelector(".n-user-lists_type_compare[data-bem*=\"realme\"]");
-
-        // .layout__col_search-results_normal div[data-id^="model"] - карточки товара
-        // ancestor::div[data-id^="model"]
-
-        WebDriverWait wait = new WebDriverWait(driver, 10L);
+        WebDriverWait wait = new WebDriverWait(driver, 5L);
         Actions action = new Actions(driver);
 
-        driver.get(cfg.yandex());
+        driver.get(cfg.yandexM());
 
         //при первом запуске отображается попап (подсказка) в строке поиска, которая перекрывает кнопку "Все категории"
         //если попап отобразился, то нужно подождать, пока попап не скроется
@@ -95,18 +92,32 @@ public class YandexMarketTest {
         wait.until(ExpectedConditions.invisibilityOfElementLocated(preloaderOnItems));
 
         //добавить к сравнению первый найденный элемент xiaomi и realme
-        driver.findElement(xiaomiItems).findElement(compareButton).click();
+        driver.findElement(xiaomiItems).findElement(itemCompareButton).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(popupInformer));
         String xiaomiName = driver.findElement(xiaomiItems).findElement(itemLink).getAttribute("title");
         Assert.assertTrue(driver.findElement(popupInformerText).getText().contains(xiaomiName));
         driver.findElement(popupInformerClose).click();
 
-        driver.findElement(realmeItems).findElement(compareButton).click();
+        driver.findElement(realmeItems).findElement(itemCompareButton).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(popupInformer));
         String realmeName = driver.findElement(realmeItems).findElement(itemLink).getAttribute("title");
         Assert.assertTrue(driver.findElement(popupInformerText).getText().contains(realmeName));
         driver.findElement(popupInformerCompare).click();
 
+        //проверка количества сравниваемых элементов
+        Assert.assertTrue(driver.findElements(compareItems).size() == 2);
+
+        //нажать "все характеристики" (подождать закрытие прелоадера)
+        driver.findElement(compareAllSpecs).click();
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(comparePreloader));
+        //проверка наличия параметра "Операционная система"
+        Assert.assertTrue(driver.findElement(compareOS).isDisplayed());
+
+        //нажать "различающиеся характеристики" (подождать закрытие прелоадера)
+        driver.findElement(compareDiff).click();
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(comparePreloader));
+        //проверка отсутствия параметра "Операционная система"
+        Assert.assertFalse(driver.findElement(compareOS).isDisplayed());
     }
 
     @After

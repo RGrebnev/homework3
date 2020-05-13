@@ -4,6 +4,6 @@ public interface TestConfig extends Config {
     @Key("otus")
     String otus();
     @Key("yandexMarket")
-    String yandex();
+    String yandexM();
 
 }
