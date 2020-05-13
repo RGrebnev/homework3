@@ -29,7 +29,7 @@ public class YandexMarketTest {
         if (browserType == null) browserType = "chrome"; //default browser (without argument)
         driver = WebDriverFactory.createNewDriver(browserType);
         driver.manage().window().maximize();
-        driver.manage().timeouts().implicitlyWait(500L, TimeUnit.MILLISECONDS);
+        driver.manage().timeouts().implicitlyWait(2L, TimeUnit.SECONDS);
         logger.info("Driver is up");
     }
 
@@ -61,10 +61,12 @@ public class YandexMarketTest {
         By compareOS = By.xpath("//div[text()=\"Операционная система\"]");
         By comparePreloader = By.cssSelector(".spin2_progress_yes");
 
-        WebDriverWait wait = new WebDriverWait(driver, 5L);
+        WebDriverWait wait = new WebDriverWait(driver, 20L);
         Actions action = new Actions(driver);
 
         driver.get(cfg.yandexM());
+        //ожидание загрузки скриптов
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".i-global_js_inited")));
 
         //при первом запуске отображается попап (подсказка) в строке поиска, которая перекрывает кнопку "Все категории"
         //если попап отобразился, то нужно подождать, пока попап не скроется
