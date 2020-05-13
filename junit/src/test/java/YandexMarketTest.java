@@ -14,6 +14,9 @@ import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import javax.naming.ldap.LdapReferralException;
+import java.util.List;
+
 public class YandexMarketTest {
     protected static WebDriver driver;
     private final static Logger logger = LogManager.getLogger("JUnit tests");
@@ -37,17 +40,40 @@ public class YandexMarketTest {
         By expandedMenu = By.cssSelector("div[role=tablist][aria-orientation=vertical] ~ div[aria-expanded=true]");
         By electroLink = By.cssSelector("a[href=\"/catalog--elektronika/54440\"]");
         By mobileLink = By.cssSelector("a[href^=\"/catalog--mobilnye-telefony/54726\"]");
-        By meizuManufacturer = By.cssSelector("input[name=\"Производитель Meizu\"] + div");
-        By realmeManufacturer = By.cssSelector("input[name=\"Производитель realme\"] + div");
+        By filterManufacturer = By.xpath("//div[@data-zone-name=\"search-filter\"]//legend[text()=\"Производитель\"]/..");
+        By xiaomiManufacturer = By.cssSelector("input[name$=\"Xiaomi\"] + div");
+        By realmeManufacturer = By.cssSelector("input[name$=\"realme\"] + div");
+        By priceSort = By.linkText("по цене");
+        By preloaderOnItems = By.cssSelector(".n-filter-applied-results__content .preloadable__preloader_visibility_visible");
+        By xiaomiItems = By.xpath("//div[text()=\"Xiaomi\"]/ancestor::div[contains(@data-id, \"model\")]");
+        By realmeItems = By.xpath("//div[text()=\"realme\"]/ancestor::div[contains(@data-id, \"model\")]");
+        By compareButton = By.cssSelector(".n-user-lists_type_compare");
+        By itemLink = By.cssSelector("div.n-snippet-cell2__header a");
+        By popupInformer = By.cssSelector(".popup-informer");
+        By popupInformerText = By.cssSelector(".popup-informer .popup-informer__title");
+        By popupInformerClose = By.cssSelector(".popup-informer .popup-informer__close");
+        By popupInformerCompare = By.cssSelector(".popup-informer .button");
+
+
+
+
+
+//        By xiaomiToCompare = By.cssSelector(".n-user-lists_type_compare[data-bem*=\"Xiaomi\"]");
+//        By realmeToCompare = By.cssSelector(".n-user-lists_type_compare[data-bem*=\"realme\"]");
+
+        // .layout__col_search-results_normal div[data-id^="model"] - карточки товара
+        // ancestor::div[data-id^="model"]
 
         WebDriverWait wait = new WebDriverWait(driver, 10L);
         Actions action = new Actions(driver);
 
         driver.get(cfg.yandex());
+
         //при первом запуске отображается попап (подсказка) в строке поиска, которая перекрывает кнопку "Все категории"
         //если попап отобразился, то нужно подождать, пока попап не скроется
         //если попап не отобразился, то тест идет дальше
         wait.until(ExpectedConditions.invisibilityOfElementLocated(popupHelp));
+
         //нажимаем кнопку "Все категории" и ждем отображения меню категорий
         driver.findElement(allCategories).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(verticalMenu));
@@ -55,9 +81,31 @@ public class YandexMarketTest {
         action.moveToElement(driver.findElement(verticalMenu).findElement(electroLink)).build().perform();
         //нажать на ссылку "мобильные телефоны" в расширенном меню
         driver.findElement(expandedMenu).findElement(mobileLink).click();
-        //отметить чекбоксы meizu и realmi
-        driver.findElement(meizuManufacturer).click();
+
+        //ожидание блока фильтра по производителю
+        wait.until(ExpectedConditions.visibilityOfElementLocated(filterManufacturer));
+        //отметить чекбоксы xiaomi и realme
+        //после нажатия ждем обновления результатов - перестает отображаться прелоадер
+        driver.findElement(xiaomiManufacturer).click();
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(preloaderOnItems));
         driver.findElement(realmeManufacturer).click();
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(preloaderOnItems));
+        //упорядочить по цене (ждем обновление)
+        driver.findElement(priceSort).click();
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(preloaderOnItems));
+
+        //добавить к сравнению первый найденный элемент xiaomi и realme
+        driver.findElement(xiaomiItems).findElement(compareButton).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(popupInformer));
+        String xiaomiName = driver.findElement(xiaomiItems).findElement(itemLink).getAttribute("title");
+        Assert.assertTrue(driver.findElement(popupInformerText).getText().contains(xiaomiName));
+        driver.findElement(popupInformerClose).click();
+
+        driver.findElement(realmeItems).findElement(compareButton).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(popupInformer));
+        String realmeName = driver.findElement(realmeItems).findElement(itemLink).getAttribute("title");
+        Assert.assertTrue(driver.findElement(popupInformerText).getText().contains(realmeName));
+        driver.findElement(popupInformerCompare).click();
 
     }
 
