@@ -5,121 +5,99 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import pages.YandexMarketComparePage;
+import pages.YandexMarketMainPage;
+import pages.YandexMarketMobilePage;
 
-import javax.naming.ldap.LdapReferralException;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class YandexMarketTest {
     protected static WebDriver driver;
     private final static Logger logger = LogManager.getLogger("JUnit tests");
-    TestConfig cfg = ConfigFactory.create(TestConfig.class);
+    private TestConfig cfg = ConfigFactory.create(TestConfig.class);
+    private WebDriverWait wait;
+    private Actions action;
 
     @Before
     public void setUp() {
         String browserType = System.getProperty("browser");
         if (browserType == null) browserType = "chrome"; //default browser (without argument)
         driver = WebDriverFactory.createNewDriver(browserType);
+        logger.info("driver is up");
+
         driver.manage().window().maximize();
         driver.manage().timeouts().implicitlyWait(2L, TimeUnit.SECONDS);
-        logger.info("Driver is up");
+        wait = new WebDriverWait(driver, 20L);
+        action = new Actions(driver);
+
+        driver.get(cfg.yandexM());
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".i-global_js_inited")));
+        logger.info("page is ready");
+
     }
 
     @Test
     public void longLongTest() {
+        YandexMarketMainPage mainPage = new YandexMarketMainPage(driver);
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(mainPage.popupHelp));
+        driver.findElement(mainPage.allCategoriesButton).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(mainPage.verticalMenu));
+        logger.info("categories menu is open");
+        mainPage.clickOnExpandedMenuLink(action, mainPage.electroLink, mainPage.mobileLink);
+        Assert.assertTrue("wrong page: not mobile phones", driver.getTitle().contains("Мобильные телефоны"));
+        logger.info("mobile phones page is open");
 
-        By popupHelp = By.cssSelector(".b-spy-visible");
-        By allCategories = By.cssSelector("div[data-zone-name=all-categories] button");
-        By verticalMenu = By.cssSelector("div[role=tablist][aria-orientation=vertical]");
-        By expandedMenu = By.cssSelector("div[role=tablist][aria-orientation=vertical] ~ div[aria-expanded=true]");
-        By electroLink = By.cssSelector("a[href=\"/catalog--elektronika/54440\"]");
-        By mobileLink = By.cssSelector("a[href^=\"/catalog--mobilnye-telefony/54726\"]");
-        By filterManufacturer = By.xpath("//div[@data-zone-name=\"search-filter\"]//legend[text()=\"Производитель\"]/..");
-        By xiaomiManufacturer = By.cssSelector("input[name$=\"Xiaomi\"] + div");
-        By realmeManufacturer = By.cssSelector("input[name$=\"realme\"] + div");
-        By priceSort = By.linkText("по цене");
-        By preloaderOnItems = By.cssSelector(".n-filter-applied-results__content .preloadable__preloader_visibility_visible");
-        By xiaomiItems = By.xpath("//div[text()=\"Xiaomi\"]/ancestor::div[contains(@data-id, \"model\")]");
-        By realmeItems = By.xpath("//div[text()=\"realme\"]/ancestor::div[contains(@data-id, \"model\")]");
-        By itemCompareButton = By.cssSelector(".n-user-lists_type_compare");
-        By itemLink = By.cssSelector("div.n-snippet-cell2__header a");
-        By popupInformer = By.cssSelector(".popup-informer");
-        By popupInformerText = By.cssSelector(".popup-informer .popup-informer__title");
-        By popupInformerClose = By.cssSelector(".popup-informer .popup-informer__close");
-        By popupInformerCompare = By.cssSelector(".popup-informer .button");
-        By compareItems = By.cssSelector(".n-compare-head .n-compare-cell");
-        By compareAllSpecs = By.cssSelector(".n-compare-show-controls__all");
-        By compareDiff = By.cssSelector(".n-compare-show-controls__diff");
-        By compareOS = By.xpath("//div[text()=\"Операционная система\"]");
-        By comparePreloader = By.cssSelector(".spin2_progress_yes");
+        YandexMarketMobilePage mobilePage = new YandexMarketMobilePage(driver);
+        wait.until(ExpectedConditions.visibilityOfElementLocated(mobilePage.filterManufacturer));
+        mobilePage.selectManufacturer("Xiaomi");
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(mobilePage.preloaderOnItems));
+        logger.info("xiaomi filter applied");
+        mobilePage.selectManufacturer("realme");
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(mobilePage.preloaderOnItems));
+        logger.info("realme filter applied");
+        driver.findElement(mobilePage.priceSort).click();
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(mobilePage.preloaderOnItems));
+        logger.info("sorted by price");
 
-        WebDriverWait wait = new WebDriverWait(driver, 20L);
-        Actions action = new Actions(driver);
+        String firstXiaomiName = mobilePage.getFirstItemFullName("Xiaomi");
+        mobilePage.addFirstItemToCompare("Xiaomi");
+        wait.until(ExpectedConditions.visibilityOfElementLocated(mobilePage.popupInformer));
+        Assert.assertTrue("added item is not first xiaomi" ,driver.findElement(mobilePage.popupInformerText).getText().contains(firstXiaomiName));
+        logger.info("first xiaomi item added to compare");
 
-        driver.get(cfg.yandexM());
-        //ожидание загрузки скриптов
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".i-global_js_inited")));
+        wait.until(ExpectedConditions.elementToBeClickable(mobilePage.popupInformerClose));
+        driver.findElement(mobilePage.popupInformerClose).click();
 
-        //при первом запуске отображается попап (подсказка) в строке поиска, которая перекрывает кнопку "Все категории"
-        //если попап отобразился, то нужно подождать, пока попап не скроется
-        //если попап не отобразился, то тест идет дальше
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(popupHelp));
+        String firstRealmeName = mobilePage.getFirstItemFullName("realme");
+        mobilePage.addFirstItemToCompare("realme");
+        wait.until(ExpectedConditions.visibilityOfElementLocated(mobilePage.popupInformer));
+        Assert.assertTrue("added item is not first realme" ,driver.findElement(mobilePage.popupInformerText).getText().contains(firstRealmeName));
+        logger.info("first realme item added to compare");
 
-        //нажимаем кнопку "Все категории" и ждем отображения меню категорий
-        driver.findElement(allCategories).click();
-        wait.until(ExpectedConditions.visibilityOfElementLocated(verticalMenu));
-        //наводим курсор на элемент "Электроника"
-        action.moveToElement(driver.findElement(verticalMenu).findElement(electroLink)).build().perform();
-        //нажать на ссылку "мобильные телефоны" в расширенном меню
-        driver.findElement(expandedMenu).findElement(mobileLink).click();
+        wait.until(ExpectedConditions.elementToBeClickable(mobilePage.popupInformerCompareButton));
+        driver.findElement(mobilePage.popupInformerCompareButton).click();
 
-        //ожидание блока фильтра по производителю
-        wait.until(ExpectedConditions.visibilityOfElementLocated(filterManufacturer));
-        //отметить чекбоксы xiaomi и realme
-        //после нажатия ждем обновления результатов - перестает отображаться прелоадер
-        driver.findElement(xiaomiManufacturer).click();
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(preloaderOnItems));
-        driver.findElement(realmeManufacturer).click();
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(preloaderOnItems));
-        //упорядочить по цене (ждем обновление)
-        driver.findElement(priceSort).click();
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(preloaderOnItems));
+        Assert.assertTrue("wrong page: not compare page", driver.getTitle().contains("Сравнение товаров"));
+        logger.info("compare page is open");
 
-        //добавить к сравнению первый найденный элемент xiaomi и realme
-        driver.findElement(xiaomiItems).findElement(itemCompareButton).click();
-        wait.until(ExpectedConditions.visibilityOfElementLocated(popupInformer));
-        String xiaomiName = driver.findElement(xiaomiItems).findElement(itemLink).getAttribute("title");
-        Assert.assertTrue(driver.findElement(popupInformerText).getText().contains(xiaomiName));
-        driver.findElement(popupInformerClose).click();
+        YandexMarketComparePage comparePage = new YandexMarketComparePage(driver);
+        Assert.assertTrue("number of compared elements != 2", driver.findElements(comparePage.comparedItems).size() == 2);
 
-        driver.findElement(realmeItems).findElement(itemCompareButton).click();
-        wait.until(ExpectedConditions.visibilityOfElementLocated(popupInformer));
-        String realmeName = driver.findElement(realmeItems).findElement(itemLink).getAttribute("title");
-        Assert.assertTrue(driver.findElement(popupInformerText).getText().contains(realmeName));
-        driver.findElement(popupInformerCompare).click();
+        driver.findElement(comparePage.allSpecsButton).click();
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(comparePage.comparePreloader));
+        Assert.assertTrue("fail: OS is not displayed", driver.findElement(comparePage.compareOS).isDisplayed());
+        logger.info("spec OS is displayed");
 
-        //проверка количества сравниваемых элементов
-        Assert.assertTrue(driver.findElements(compareItems).size() == 2);
+        driver.findElement(comparePage.diffSpecsButton).click();
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(comparePage.comparePreloader));
+        Assert.assertFalse("fail: OS is displayed", driver.findElement(comparePage.compareOS).isDisplayed());
+        logger.info("spec OS is not displayed");
 
-        //нажать "все характеристики" (подождать закрытие прелоадера)
-        driver.findElement(compareAllSpecs).click();
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(comparePreloader));
-        //проверка наличия параметра "Операционная система"
-        Assert.assertTrue(driver.findElement(compareOS).isDisplayed());
-
-        //нажать "различающиеся характеристики" (подождать закрытие прелоадера)
-        driver.findElement(compareDiff).click();
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(comparePreloader));
-        //проверка отсутствия параметра "Операционная система"
-        Assert.assertFalse(driver.findElement(compareOS).isDisplayed());
     }
 
     @After
